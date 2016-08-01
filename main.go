@@ -25,8 +25,8 @@ import (
 )
 
 func main() {
-	var listen = flag.String("l", "tcp://:23001", "listen address")
-	var backend = flag.String("b", "tcp://127.0.0.1:23002", "backend address")
+	var listen = flag.String("l", "tls://:23001", "listen address")
+	var backend = flag.String("b", "tls://127.0.0.1:23002", "backend address")
 	var rootCert = flag.String("rcert", "certs/root_cert.pem", "root cert")
 	var serverCert = flag.String("scert", "certs/server_cert.pem", "server cert")
 	var serverKey = flag.String("skey", "certs/server_key.pem", "server key")
