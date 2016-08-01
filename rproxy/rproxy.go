@@ -18,13 +18,13 @@ package rproxy
 
 import (
 	"crypto/tls"
-	"crypto/x509"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/ccding/go-rproxy/certs"
 )
 
 type RProxy struct {
@@ -100,28 +100,12 @@ func (rp *RProxy) startTCP() {
 }
 
 func (rp *RProxy) startTLS() {
-	// Load root pem
-	rootPEM, err := ioutil.ReadFile(rp.rootCert)
+	config, err := certs.LoadServerCerts(rp.rootCert, rp.serverCert, rp.serverKey)
 	if err != nil {
-		panic("failed to load root certificate")
-	}
-	roots := x509.NewCertPool()
-	if ok := roots.AppendCertsFromPEM([]byte(rootPEM)); !ok {
-		panic("failed to parse root certificate")
-	}
-	// Load server pem
-	cert, err := tls.LoadX509KeyPair(rp.serverCert, rp.serverKey)
-	if err != nil {
-		log.Fatalf("failed to load server tls certificate: %s", err)
-	}
-	// Set config for TLS listener
-	config := tls.Config{
-		ClientCAs:    roots,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{cert},
+		panic(err)
 	}
 	// Listen to TLS connections
-	ln, err := tls.Listen("tcp", rp.listenAddr, &config)
+	ln, err := tls.Listen("tcp", rp.listenAddr, config)
 	if err != nil {
 		panic(err)
 	}
@@ -158,29 +142,13 @@ func (rp *RProxy) serveTCP(listenConn net.Conn) error {
 }
 
 func (rp *RProxy) serveTLS(listenConn net.Conn) error {
-	// Load root pem
-	rootPEM, err := ioutil.ReadFile(rp.rootCert)
+	serverName := "testapp-server"
+	config, err := certs.LoadClientCerts(rp.rootCert, rp.clientCert, rp.clientKey, serverName)
 	if err != nil {
-		log.Fatalf("failed to load root certificate")
-	}
-	roots := x509.NewCertPool()
-	if ok := roots.AppendCertsFromPEM([]byte(rootPEM)); !ok {
-		panic("failed to parse root certificate")
-	}
-
-	// Load client pem
-	cert, err := tls.LoadX509KeyPair(rp.clientCert, rp.clientKey)
-	if err != nil {
-		panic("failed to load client tls certificate")
-	}
-	// Set config for TLS connections
-	config := tls.Config{
-		RootCAs:      roots,
-		ServerName:   "testapp-server",
-		Certificates: []tls.Certificate{cert},
+		return err
 	}
 	// Dial to the beckend server
-	backendConn, err := tls.Dial("tcp", rp.backendAddr, &config)
+	backendConn, err := tls.Dial("tcp", rp.backendAddr, config)
 	if err != nil {
 		listenConn.Close()
 		return err
