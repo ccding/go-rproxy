@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -24,7 +25,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"strings"
+	"os"
 )
 
 const (
@@ -34,6 +35,8 @@ const (
 	serverKey   = "certs/server_key.pem"
 	backendAddr = "127.0.0.1:23002" // backend addr of the rproxy
 )
+
+var stdin = make(chan string, 128)
 
 func main() {
 	// Load root certificate to verify client certificate
@@ -61,7 +64,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("error: listen: %s", err)
 	}
-	log.Printf("server started")
+	// Listen to stdin
+	go func() {
+		scanner := bufio.NewScanner(os.Stdin)
+		for scanner.Scan() {
+			stdin <- scanner.Text()
+		}
+	}()
 	// Handle requests
 	for {
 		conn, err := listener.Accept()
@@ -74,59 +83,43 @@ func main() {
 
 func handleConn(conn net.Conn) {
 	defer conn.Close()
-
+	// Get connection
 	tlsConn, ok := conn.(*tls.Conn)
 	if !ok {
 		log.Fatalf("error: not tls conn")
 		return
 	}
-
-	err := tlsConn.Handshake()
-	if err != nil {
+	if err := tlsConn.Handshake(); err != nil {
 		log.Fatalf("error: handshake: %s", err)
 		return
 	}
-
-	clientID, err := getClientID(tlsConn)
-	if err != nil {
-		log.Printf("error: cannot get client-id: %s", err)
-		return
-	}
-	log.Printf("handle connection from client-id: %s", clientID)
+	var quit = make(chan bool, 2)
 	// Handle client message
-	buf := make([]byte, 1024)
-	for {
-		n, err := conn.Read(buf)
-		if err != nil {
-			if err != io.EOF {
-				log.Printf("client:%s: error: read: %s", clientID, err)
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			n, err := conn.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					log.Fatalf("error: read: %s", err)
+				}
+				quit <- true
+				return
 			}
-			break
+			fmt.Println(string(buf[:n]))
 		}
-		log.Printf("client:%s: read %d bytes", clientID, n)
-		log.Printf("client:%s: echo: %s", clientID, string(buf[:n]))
-		// Echo message back to the client
-		n, err = conn.Write(buf[:n])
-		if err != nil {
-			log.Printf("client:%s: error: write: %s", clientID, err)
-			break
+	}()
+	// Read each line from stdin and send it to the client
+	for {
+		select {
+		case <-quit:
+			return
+		case message := <-stdin:
+			_, err := conn.Write([]byte(message))
+			if err != nil {
+				quit <- true
+				return
+			}
 		}
-		log.Printf("client:%s: wrote %d bytes", clientID, n)
 	}
-	log.Printf("client:%s: connection closed", clientID)
-}
-
-func getClientID(tlsConn *tls.Conn) (string, error) {
-	state := tlsConn.ConnectionState()
-	if len(state.PeerCertificates) == 0 {
-		return "", fmt.Errorf("client certificate not found")
-	}
-
-	cert := state.PeerCertificates[0]
-	parts := strings.Split(cert.Subject.CommonName, "-")
-	if len(parts) != 3 || parts[0] != appName || parts[1] != "client" || len(parts[2]) == 0 {
-		return "", fmt.Errorf("bad client common name")
-	}
-
-	return parts[2], nil
 }

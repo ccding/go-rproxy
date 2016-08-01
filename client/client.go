@@ -20,6 +20,8 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -61,24 +63,27 @@ func main() {
 		log.Fatalf("error: dial: %s", err)
 	}
 	defer conn.Close()
+	// Receive response from the server
+	go func() {
+		buf := make([]byte, 1024)
+		for {
+			n, err := conn.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					log.Fatalf("error: read: %s", err)
+				}
+				os.Exit(0)
+			}
+			fmt.Println(string(buf[:n]))
+		}
+	}()
 	// Read each line from stdin and send it to the server
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		message := scanner.Text()
-		log.Printf("sending: %s", message)
-		// Send message to the server
-		n, err := conn.Write([]byte(message))
+		_, err := conn.Write([]byte(message))
 		if err != nil {
 			log.Fatalf("error: write: %s", err)
 		}
-		log.Printf("wrote %d bytes", n)
-		// Receive response from the server
-		buf := make([]byte, 1024)
-		n, err = conn.Read(buf)
-		if err != nil {
-			log.Fatalf("error: read: %s", err)
-		}
-		log.Printf("read %d bytes", n)
-		log.Printf("server reply: %s", string(buf[:n]))
 	}
 }
