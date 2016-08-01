@@ -30,7 +30,7 @@ requests:
 ```
 server/server.go:	TLS server
 client/client.go:	TLS client
-nc:					TCP server
+nc (netcat):		TCP server/client
 telnet:				TCP client
 ```
 
