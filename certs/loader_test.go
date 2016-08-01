@@ -29,7 +29,17 @@ const (
 	clientKey  = "client_0_key.pem"
 )
 
-func TestLoadClient(t *testing.T) {
+func TestLoadCACerts(t *testing.T) {
+	cp, err := LoadCACerts("root_cert.pem")
+	if err != nil {
+		t.Errorf("error: failed to load the certificates.")
+	}
+	if cp == nil {
+		t.Errorf("nil cert: failed to load the certificates.")
+	}
+}
+
+func TestLoadClientCerts(t *testing.T) {
 	config, err := LoadClientCerts(rootCert, clientCert, clientKey, serverName)
 	if err != nil {
 		t.Errorf("error: failed to load the client certificates.")
@@ -39,7 +49,7 @@ func TestLoadClient(t *testing.T) {
 	}
 }
 
-func TestLoadServer(t *testing.T) {
+func TestLoadServerCerts(t *testing.T) {
 	config, err := LoadServerCerts(rootCert, serverCert, serverKey)
 	if err != nil {
 		t.Errorf("error: failed to load the client certificates.")

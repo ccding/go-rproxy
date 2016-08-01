@@ -18,10 +18,12 @@ package mkcert
 
 import (
 	"testing"
+
+	"github.com/ccding/go-rproxy/certs"
 )
 
-func TestLoadCACert(t *testing.T) {
-	cp, err := LoadCACerts("root_cert.pem")
+func TestCACerts(t *testing.T) {
+	cp, err := certs.LoadCACerts("root_cert.pem")
 	if err != nil {
 		t.Errorf("error: failed to load the certificates.")
 	}

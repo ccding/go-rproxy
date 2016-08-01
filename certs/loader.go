@@ -1,3 +1,19 @@
+// Copyright 2016, Cong Ding. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// Author: Cong Ding <dinggnu@gmail.com>
+
 package certs
 
 import (
@@ -7,16 +23,23 @@ import (
 	"io/ioutil"
 )
 
-func LoadClientCerts(rootCert, clientCert, clientKey, serverName string) (*tls.Config, error) {
-	// Load root certificate to verify server certificate
-	rootPEM, err := ioutil.ReadFile(rootCert)
+func LoadCACerts(certsFilename string) (*x509.CertPool, error) {
+	certs, err := ioutil.ReadFile(certsFilename)
 	if err != nil {
 		return nil, err
 	}
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM([]byte(rootPEM))
-	if !ok {
-		return nil, errors.New("failed to parse root certificate")
+	cp := x509.NewCertPool()
+	if ok := cp.AppendCertsFromPEM([]byte(certs)); !ok {
+		return nil, errors.New("fail loading certificates")
+	}
+	return cp, nil
+}
+
+func LoadClientCerts(rootCert, clientCert, clientKey, serverName string) (*tls.Config, error) {
+	// Load root certificate
+	roots, err := LoadCACerts(rootCert)
+	if err != nil {
+		return nil, err
 	}
 	// Load client certificate
 	cert, err := tls.LoadX509KeyPair(clientCert, clientKey)
@@ -33,14 +56,10 @@ func LoadClientCerts(rootCert, clientCert, clientKey, serverName string) (*tls.C
 }
 
 func LoadServerCerts(rootCert, serverCert, serverKey string) (*tls.Config, error) {
-	// Load root certificate to verify client certificate
-	rootPEM, err := ioutil.ReadFile(rootCert)
+	// Load root certificate
+	roots, err := LoadCACerts(rootCert)
 	if err != nil {
 		return nil, err
-	}
-	roots := x509.NewCertPool()
-	if ok := roots.AppendCertsFromPEM([]byte(rootPEM)); !ok {
-		return nil, errors.New("failed to parse root certificate")
 	}
 	// Load server certificate
 	cert, err := tls.LoadX509KeyPair(serverCert, serverKey)
