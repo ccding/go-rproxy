@@ -19,14 +19,13 @@ package main
 import (
 	"bufio"
 	"crypto/tls"
-	"crypto/x509"
-	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"os"
+
+	"github.com/ccding/go-rproxy/certs"
 )
 
 const (
@@ -38,7 +37,7 @@ const (
 )
 
 func main() {
-	config, err := loadServerCert(rootCert, serverCert, serverKey)
+	config, err := certs.LoadServerCerts(rootCert, serverCert, serverKey)
 	if err != nil {
 		log.Fatal("%s", err)
 	}
@@ -55,30 +54,6 @@ func main() {
 		}
 		go handleConn(conn, stdin)
 	}
-}
-
-func loadServerCert(rootCert, serverCert, serverKey string) (*tls.Config, error) {
-	// Load root certificate to verify client certificate
-	rootPEM, err := ioutil.ReadFile(rootCert)
-	if err != nil {
-		return nil, err
-	}
-	roots := x509.NewCertPool()
-	if ok := roots.AppendCertsFromPEM([]byte(rootPEM)); !ok {
-		return nil, errors.New("failed to parse root certificate")
-	}
-	// Load server certificate
-	cert, err := tls.LoadX509KeyPair(serverCert, serverKey)
-	if err != nil {
-		return nil, err
-	}
-	// Set TLS config
-	config := &tls.Config{
-		ClientCAs:    roots,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{cert},
-	}
-	return config, nil
 }
 
 func readStdin(stdin chan string) {
