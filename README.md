@@ -11,13 +11,13 @@
 
 go-rproxy is a transport layer reverse proxy speaking TCP and TLS.
 
-A general usecase is that it accepts TLS/HTTPS requests and forward them to
+A general usecase is that it accepts TLS/HTTPS requests and forwards them to
 the backend server as TCP/HTTP requests. This helps software engineers to make
 their TCP-based applications have TLS interfaces without modifying their
 applications.
 
 Another usecase is that it acts as a transport layer proxy to help debugging
-the API between clients and servers.
+the API between clients and the server.
 
 In general, go-rproxy accepts TCP/TLS requests from clients and sends TCP/TLS
 requests to the server, in any combination, say TCP->TCP, TCP->TLS, TLS-TCP,
