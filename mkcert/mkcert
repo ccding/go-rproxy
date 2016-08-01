@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+curl 'https://mkcert.org/generate/' > root_cert.pem
