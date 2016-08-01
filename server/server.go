@@ -59,7 +59,7 @@ func main() {
 func readStdin(stdin chan string) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		stdin <- scanner.Text()
+		stdin <- scanner.Text() + "\n"
 	}
 }
 
@@ -90,7 +90,7 @@ func read(conn net.Conn, quit chan bool) {
 			quit <- true
 			return
 		}
-		fmt.Println(string(buf[:n]))
+		fmt.Print(string(buf[:n]))
 	}
 }
 

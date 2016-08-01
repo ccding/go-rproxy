@@ -54,7 +54,7 @@ func main() {
 func write(conn net.Conn) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
-		message := scanner.Text()
+		message := scanner.Text() + "\n"
 		_, err := conn.Write([]byte(message))
 		if err != nil {
 			log.Fatalf("error: write: %s", err)
@@ -72,6 +72,6 @@ func read(conn net.Conn) {
 			}
 			os.Exit(0)
 		}
-		fmt.Println(string(buf[:n]))
+		fmt.Print(string(buf[:n]))
 	}
 }
