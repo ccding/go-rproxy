@@ -20,10 +20,12 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 )
 
@@ -36,48 +38,46 @@ const (
 )
 
 func main() {
-	// Load root certificate to verify server certificate
-	rootPEM, err := ioutil.ReadFile(rootCert)
+	serverName := appName + "-server"
+	config, err := loadClientCert(serverName, rootCert, clientCert, clientKey)
 	if err != nil {
-		log.Fatalf("failed to read root certificate: %s", err)
+		log.Fatal("%s", err)
 	}
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM([]byte(rootPEM))
-	if !ok {
-		log.Fatalf("failed to parse root certificate")
-	}
-	// Load client certificate
-	cert, err := tls.LoadX509KeyPair(clientCert, clientKey)
-	if err != nil {
-		log.Fatalf("failed to load client tls certificate: %s", err)
-	}
-	// Set TLS config
-	config := tls.Config{
-		RootCAs:      roots,
-		ServerName:   appName + "-server",
-		Certificates: []tls.Certificate{cert},
-	}
-	// Listen to the TLS port
-	conn, err := tls.Dial("tcp", listenAddr, &config)
+	conn, err := tls.Dial("tcp", listenAddr, config)
 	if err != nil {
 		log.Fatalf("error: dial: %s", err)
 	}
 	defer conn.Close()
-	// Receive response from the server
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			n, err := conn.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					log.Fatalf("error: read: %s", err)
-				}
-				os.Exit(0)
-			}
-			fmt.Println(string(buf[:n]))
-		}
-	}()
-	// Read each line from stdin and send it to the server
+	go read(conn)
+	write(conn)
+}
+
+func loadClientCert(serverName, rootCert, clientCert, clientKey string) (*tls.Config, error) {
+	// Load root certificate to verify server certificate
+	rootPEM, err := ioutil.ReadFile(rootCert)
+	if err != nil {
+		return nil, err
+	}
+	roots := x509.NewCertPool()
+	ok := roots.AppendCertsFromPEM([]byte(rootPEM))
+	if !ok {
+		return nil, errors.New("failed to parse root certificate")
+	}
+	// Load client certificate
+	cert, err := tls.LoadX509KeyPair(clientCert, clientKey)
+	if err != nil {
+		return nil, err
+	}
+	// Set TLS config
+	config := &tls.Config{
+		RootCAs:      roots,
+		ServerName:   serverName,
+		Certificates: []tls.Certificate{cert},
+	}
+	return config, nil
+}
+
+func write(conn net.Conn) {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		message := scanner.Text()
@@ -85,5 +85,19 @@ func main() {
 		if err != nil {
 			log.Fatalf("error: write: %s", err)
 		}
+	}
+}
+
+func read(conn net.Conn) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				log.Fatalf("error: read: %s", err)
+			}
+			os.Exit(0)
+		}
+		fmt.Println(string(buf[:n]))
 	}
 }

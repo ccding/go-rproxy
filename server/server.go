@@ -20,6 +20,7 @@ import (
 	"bufio"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -36,54 +37,59 @@ const (
 	backendAddr = "127.0.0.1:23002" // backend addr of the rproxy
 )
 
-var stdin = make(chan string, 128)
-
 func main() {
-	// Load root certificate to verify client certificate
-	rootPEM, err := ioutil.ReadFile(rootCert)
+	config, err := loadServerCert(rootCert, serverCert, serverKey)
 	if err != nil {
-		log.Fatalf("failed to read root certificate: %s", err)
+		log.Fatal("%s", err)
 	}
-	roots := x509.NewCertPool()
-	if ok := roots.AppendCertsFromPEM([]byte(rootPEM)); !ok {
-		log.Fatalf("failed to parse root certificate")
-	}
-	// Load server certificate
-	cert, err := tls.LoadX509KeyPair(serverCert, serverKey)
-	if err != nil {
-		log.Fatalf("failed to load server tls certificate: %s", err)
-	}
-	// Set TLS config
-	config := tls.Config{
-		ClientCAs:    roots,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-		Certificates: []tls.Certificate{cert},
-	}
-	// Listen to the TLS port
-	listener, err := tls.Listen("tcp", backendAddr, &config)
+	listener, err := tls.Listen("tcp", backendAddr, config)
 	if err != nil {
 		log.Fatalf("error: listen: %s", err)
 	}
-	// Listen to stdin
-	go func() {
-		scanner := bufio.NewScanner(os.Stdin)
-		for scanner.Scan() {
-			stdin <- scanner.Text()
-		}
-	}()
-	// Handle requests
+	var stdin = make(chan string, 1024)
+	go readStdin(stdin)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			log.Fatalf("error: accept: %s", err)
 		}
-		go handleConn(conn)
+		go handleConn(conn, stdin)
 	}
 }
 
-func handleConn(conn net.Conn) {
+func loadServerCert(rootCert, serverCert, serverKey string) (*tls.Config, error) {
+	// Load root certificate to verify client certificate
+	rootPEM, err := ioutil.ReadFile(rootCert)
+	if err != nil {
+		return nil, err
+	}
+	roots := x509.NewCertPool()
+	if ok := roots.AppendCertsFromPEM([]byte(rootPEM)); !ok {
+		return nil, errors.New("failed to parse root certificate")
+	}
+	// Load server certificate
+	cert, err := tls.LoadX509KeyPair(serverCert, serverKey)
+	if err != nil {
+		return nil, err
+	}
+	// Set TLS config
+	config := &tls.Config{
+		ClientCAs:    roots,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{cert},
+	}
+	return config, nil
+}
+
+func readStdin(stdin chan string) {
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		stdin <- scanner.Text()
+	}
+}
+
+func handleConn(conn net.Conn, stdin chan string) {
 	defer conn.Close()
-	// Get connection
 	tlsConn, ok := conn.(*tls.Conn)
 	if !ok {
 		log.Fatalf("error: not tls conn")
@@ -94,22 +100,26 @@ func handleConn(conn net.Conn) {
 		return
 	}
 	var quit = make(chan bool, 2)
-	// Handle client message
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			n, err := conn.Read(buf)
-			if err != nil {
-				if err != io.EOF {
-					log.Fatalf("error: read: %s", err)
-				}
-				quit <- true
-				return
+	go read(conn, quit)
+	write(conn, quit, stdin)
+}
+
+func read(conn net.Conn, quit chan bool) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := conn.Read(buf)
+		if err != nil {
+			if err != io.EOF {
+				log.Fatalf("error: read: %s", err)
 			}
-			fmt.Println(string(buf[:n]))
+			quit <- true
+			return
 		}
-	}()
-	// Read each line from stdin and send it to the client
+		fmt.Println(string(buf[:n]))
+	}
+}
+
+func write(conn net.Conn, quit chan bool, stdin chan string) {
 	for {
 		select {
 		case <-quit:
