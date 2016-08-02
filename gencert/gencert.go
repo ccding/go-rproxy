@@ -126,7 +126,7 @@ func main() {
 		}
 		rootCertBlock, _ := pem.Decode(rootCertData)
 		if rootCertBlock == nil {
-			log.Println("failed to decode root certificate pem")
+			log.Fatalf("failed to decode root certificate pem")
 		}
 		rootCert, err = x509.ParseCertificate(rootCertBlock.Bytes)
 		if err != nil {
@@ -139,7 +139,7 @@ func main() {
 		}
 		rootKeyBlock, _ := pem.Decode(rootKeyData)
 		if rootKeyBlock == nil {
-			log.Println("failed to decode root private key pem")
+			log.Fatalf("failed to decode root private key pem")
 		}
 		rootKey, err = x509.ParsePKCS1PrivateKey(rootKeyBlock.Bytes)
 		if err != nil {
@@ -174,7 +174,7 @@ func main() {
 
 	keyOut, err := os.OpenFile(keyfn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Print("failed to open %s for writing:", keyfn, err)
+		log.Fatalf("failed to open %s for writing:", keyfn, err)
 		return
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})
