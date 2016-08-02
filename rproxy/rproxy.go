@@ -27,6 +27,8 @@ import (
 	"github.com/ccding/go-rproxy/certs"
 )
 
+// RProxy is used to store configurations of the reverse proxy and start
+// running the proxy.
 type RProxy struct {
 	listenProto  string
 	listenAddr   string
