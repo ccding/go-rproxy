@@ -41,6 +41,19 @@ type RProxy struct {
 	serverConfig *tls.Config
 }
 
+// NewRProxyWithoutCerts creates an RProxy instance without setting
+// certificate files, which is used in pure TCP setting or set the
+// TLS configuration later.
+func NewRProxyWithoutCerts(listenProto, listenAddr, backendProto, backendAddr string) *RProxy {
+	return &RProxy{
+		listenProto:  strings.ToLower(listenProto),
+		listenAddr:   strings.ToLower(listenAddr),
+		backendProto: strings.ToLower(backendProto),
+		backendAddr:  strings.ToLower(backendAddr),
+	}
+}
+
+// NewRProxy creates an RProxy instance.
 func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, serverCert, serverKey, clientCert, clientKey string) *RProxy {
 	return &RProxy{
 		listenProto:  strings.ToLower(listenProto),
@@ -55,14 +68,17 @@ func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, ser
 	}
 }
 
+// SetClientConfig sets the config for client (backend TLS).
 func (rp *RProxy) SetClientConfig(config *tls.Config) {
 	rp.clientConfig = config
 }
 
+// SetServerConfig sets the config for server (listen TLS).
 func (rp *RProxy) SetServerConfig(config *tls.Config) {
 	rp.serverConfig = config
 }
 
+// Start starts the reverse proxy service.
 func (rp *RProxy) Start() {
 	// Check backend protocol and load certificates if TLS
 	switch rp.backendProto {

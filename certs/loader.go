@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 )
 
+// LoadCACerts loads the CA certificates (root certs).
 func LoadCACerts(certsFilename string) (*x509.CertPool, error) {
 	certs, err := ioutil.ReadFile(certsFilename)
 	if err != nil {
@@ -35,6 +36,7 @@ func LoadCACerts(certsFilename string) (*x509.CertPool, error) {
 	return cp, nil
 }
 
+// LoadClientCerts loads the client certificates.
 func LoadClientCerts(rootCert, clientCert, clientKey, serverName string) (*tls.Config, error) {
 	// Load root certificate
 	roots, err := LoadCACerts(rootCert)
@@ -55,6 +57,7 @@ func LoadClientCerts(rootCert, clientCert, clientKey, serverName string) (*tls.C
 	return config, nil
 }
 
+// LoadServerCerts loads the server certificates.
 func LoadServerCerts(rootCert, serverCert, serverKey string) (*tls.Config, error) {
 	// Load root certificate
 	roots, err := LoadCACerts(rootCert)
