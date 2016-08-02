@@ -18,7 +18,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"strings"
 
 	"github.com/ccding/go-rproxy/rproxy"
@@ -55,8 +55,8 @@ func main() {
 
 	go rp.Start()
 
-	fmt.Printf("Listening on: %s\n", *listen)
-	fmt.Printf("Forwarding to: %s\n", *backend)
+	log.Printf("Listening on: %s\n", *listen)
+	log.Printf("Forwarding to: %s\n", *backend)
 
 	select {}
 }
