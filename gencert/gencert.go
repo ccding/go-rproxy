@@ -174,7 +174,7 @@ func main() {
 
 	keyOut, err := os.OpenFile(keyfn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		log.Fatalf("failed to open %s for writing:", keyfn, err)
+		log.Fatalf("failed to open %s for writing: %s", keyfn, err)
 		return
 	}
 	pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)})

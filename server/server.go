@@ -39,7 +39,7 @@ const (
 func main() {
 	config, err := certs.LoadServerCerts(rootCert, serverCert, serverKey)
 	if err != nil {
-		log.Fatal("%s", err)
+		log.Fatalf("%s", err)
 	}
 	listener, err := tls.Listen("tcp", backendAddr, config)
 	if err != nil {

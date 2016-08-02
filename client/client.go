@@ -40,7 +40,7 @@ func main() {
 	serverName := appName + "-server"
 	config, err := certs.LoadClientCerts(rootCert, clientCert, clientKey, serverName)
 	if err != nil {
-		log.Fatal("%s", err)
+		log.Fatalf("%s", err)
 	}
 	conn, err := tls.Dial("tcp", listenAddr, config)
 	if err != nil {
