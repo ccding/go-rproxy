@@ -18,6 +18,7 @@ package rproxy
 
 import (
 	"crypto/tls"
+	"errors"
 	"io"
 	"log"
 	"net"
@@ -41,6 +42,7 @@ type RProxy struct {
 	clientKey    string
 	clientConfig *tls.Config
 	serverConfig *tls.Config
+	serverName   string
 }
 
 // NewRProxyWithoutCerts creates an RProxy instance without setting
@@ -56,7 +58,7 @@ func NewRProxyWithoutCerts(listenProto, listenAddr, backendProto, backendAddr st
 }
 
 // NewRProxy creates an RProxy instance.
-func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, serverCert, serverKey, clientCert, clientKey string) *RProxy {
+func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, serverCert, serverKey, clientCert, clientKey, serverName string) *RProxy {
 	return &RProxy{
 		listenProto:  strings.ToLower(listenProto),
 		listenAddr:   strings.ToLower(listenAddr),
@@ -67,6 +69,7 @@ func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, ser
 		serverKey:    serverKey,
 		clientCert:   clientCert,
 		clientKey:    clientKey,
+		serverName:   serverName,
 	}
 }
 
@@ -81,92 +84,97 @@ func (rp *RProxy) SetServerConfig(config *tls.Config) {
 }
 
 // Start starts the reverse proxy service.
-func (rp *RProxy) Start() {
+func (rp *RProxy) Start() error {
 	// Check backend protocol and load certificates if TLS
 	switch rp.backendProto {
 	case "tcp":
 	case "tls":
 		// Load client certificates for TLS
 		if rp.clientConfig == nil {
-			serverName := "testapp-server"
-			config, err := certs.LoadClientCerts(rp.rootCert, rp.clientCert, rp.clientKey, serverName)
+			config, err := certs.LoadClientCerts(rp.rootCert, rp.clientCert, rp.clientKey, rp.serverName)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			rp.clientConfig = config
 		}
 	default:
-		panic("backend protocol not supported")
+		return errors.New("backend protocol not supported")
 	}
 	// Check listen protocol, load certiticates if TLS, and start listening
 	switch rp.listenProto {
 	case "tcp":
-		rp.startTCP()
+		return rp.startTCP()
 	case "tls":
 		// Load server certificates for TLS
 		if rp.serverConfig == nil {
 			config, err := certs.LoadServerCerts(rp.rootCert, rp.serverCert, rp.serverKey)
 			if err != nil {
-				panic(err)
+				return err
 			}
 			rp.serverConfig = config
 		}
 		// Start listening through TLS protocol
-		rp.startTLS()
+		return rp.startTLS()
 	default:
-		panic("listen protocol not supported")
+		return errors.New("listen protocol not supported")
 	}
 }
 
-func (rp *RProxy) serve(conn net.Conn) {
+func (rp *RProxy) serve(conn net.Conn) error {
 	switch rp.backendProto {
 	case "tcp":
-		rp.serveTCP(conn)
+		return rp.serveTCP(conn)
 	case "tls":
-		rp.serveTLS(conn)
+		return rp.serveTLS(conn)
 	default:
-		panic("backend protocol not supported")
+		return errors.New("backend protocol not supported")
 	}
 }
 
-func (rp *RProxy) startTCP() {
+func (rp *RProxy) startTCP() error {
 	// Resolve network address
 	lAddr, err := net.ResolveTCPAddr("tcp", rp.listenAddr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	// Listen to TCP connections
 	ln, err := net.ListenTCP("tcp", lAddr)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer ln.Close()
 	// Handle connections
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Printf("accept error (%v)\n", err)
+			log.Printf("accept error: %v", err)
 			continue
 		}
-		go rp.serve(conn)
+		go func() {
+			if err := rp.serve(conn); err != nil {
+				log.Printf("serve error: %v", err)
+			}
+		}()
 	}
 }
 
-func (rp *RProxy) startTLS() {
+func (rp *RProxy) startTLS() error {
 	// Listen to TLS connections
 	ln, err := tls.Listen("tcp", rp.listenAddr, rp.serverConfig)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer ln.Close()
 	// Handle connections
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			log.Printf("accept error (%v)\n", err)
+			log.Printf("accept error (%v)", err)
 			continue
 		}
-		go rp.serve(conn)
+		if err := rp.serve(conn); err != nil {
+			log.Printf("serve error: %v", err)
+		}
 	}
 }
 
