@@ -40,11 +40,11 @@ func main() {
 	serverName := appName + "-server"
 	config, err := certs.LoadClientCerts(rootCert, clientCert, clientKey, serverName)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("%v", err)
 	}
 	conn, err := tls.Dial("tcp", listenAddr, config)
 	if err != nil {
-		log.Fatalf("error: dial: %s", err)
+		log.Fatalf("error: dial: %v", err)
 	}
 	defer conn.Close()
 	go read(conn)
@@ -57,7 +57,7 @@ func write(conn net.Conn) {
 		message := scanner.Text() + "\n"
 		_, err := conn.Write([]byte(message))
 		if err != nil {
-			log.Fatalf("error: write: %s", err)
+			log.Fatalf("error: write: %v", err)
 		}
 	}
 }
@@ -68,7 +68,7 @@ func read(conn net.Conn) {
 		n, err := conn.Read(buf)
 		if err != nil {
 			if err != io.EOF {
-				log.Fatalf("error: read: %s", err)
+				log.Fatalf("error: read: %v", err)
 			}
 			os.Exit(0)
 		}

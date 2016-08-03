@@ -39,18 +39,18 @@ const (
 func main() {
 	config, err := certs.LoadServerCerts(rootCert, serverCert, serverKey)
 	if err != nil {
-		log.Fatalf("%s", err)
+		log.Fatalf("load server certs error: %v", err)
 	}
 	listener, err := tls.Listen("tcp", backendAddr, config)
 	if err != nil {
-		log.Fatalf("error: listen: %s", err)
+		log.Fatalf("listen error: %v", err)
 	}
 	var stdin = make(chan string, 1024)
 	go readStdin(stdin)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			log.Fatalf("error: accept: %s", err)
+			log.Fatalf("accept error: %v", err)
 		}
 		go handleConn(conn, stdin)
 	}
@@ -71,7 +71,7 @@ func handleConn(conn net.Conn, stdin chan string) {
 		return
 	}
 	if err := tlsConn.Handshake(); err != nil {
-		log.Fatalf("error: handshake: %s", err)
+		log.Fatalf("handshake error: %v", err)
 		return
 	}
 	var quit = make(chan bool, 2)
@@ -85,7 +85,7 @@ func read(conn net.Conn, quit chan bool) {
 		n, err := conn.Read(buf)
 		if err != nil {
 			if err != io.EOF {
-				log.Fatalf("error: read: %s", err)
+				log.Fatalf("read error: %v", err)
 			}
 			quit <- true
 			return
