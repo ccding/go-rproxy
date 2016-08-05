@@ -43,6 +43,7 @@ type RProxy struct {
 	clientConfig *tls.Config
 	serverConfig *tls.Config
 	serverName   string
+	verbose      bool
 }
 
 // NewRProxyWithoutCerts creates an RProxy instance without setting
@@ -71,6 +72,11 @@ func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, ser
 		clientKey:    clientKey,
 		serverName:   serverName,
 	}
+}
+
+// SetVerbose sets the verbose mode, which prints all the data sent and received.
+func (rp *RProxy) SetVerbose(v bool) {
+	rp.verbose = v
 }
 
 // SetClientConfig sets the config for client (backend TLS).
