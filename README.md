@@ -9,6 +9,9 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/ccding/go-rproxy)]
 (https://goreportcard.com/report/github.com/ccding/go-rproxy)
 
+WARNING: This project is still under development. Its API may change
+significantly.
+
 go-rproxy is a transport layer reverse proxy speaking TCP and TLS.
 
 A general usecase is that it accepts TLS/HTTPS requests and forwards them to
