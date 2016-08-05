@@ -187,12 +187,12 @@ func (rp *RProxy) serveTCP(listenConn net.Conn) error {
 	}
 	// Copy network traffic from the listen connection to backend connection
 	go func() {
-		io.Copy(backendConn, listenConn)
+		io.Copy(backendConn, NewRPReader(listenConn))
 		backendConn.Close()
 		listenConn.Close()
 	}()
 	// Copy network traffic from the backend connection to listen connection
-	io.Copy(listenConn, backendConn)
+	io.Copy(NewRPWriteCloser(listenConn), backendConn)
 	backendConn.Close()
 	listenConn.Close()
 	return nil
@@ -207,12 +207,12 @@ func (rp *RProxy) serveTLS(listenConn net.Conn) error {
 	}
 	// Copy network traffic from the listen connection to backend connection
 	go func() {
-		io.Copy(backendConn, listenConn)
+		io.Copy(backendConn, NewRPReader(listenConn))
 		backendConn.Close()
 		listenConn.Close()
 	}()
 	// Copy network traffic from the backend connection to listen connection
-	io.Copy(listenConn, backendConn)
+	io.Copy(NewRPWriteCloser(listenConn), backendConn)
 	backendConn.Close()
 	listenConn.Close()
 	return nil
