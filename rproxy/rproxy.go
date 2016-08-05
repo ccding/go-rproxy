@@ -55,6 +55,7 @@ func NewRProxyWithoutCerts(listenProto, listenAddr, backendProto, backendAddr st
 		listenAddr:   strings.ToLower(listenAddr),
 		backendProto: strings.ToLower(backendProto),
 		backendAddr:  strings.ToLower(backendAddr),
+		verbose:      false,
 	}
 }
 
@@ -71,6 +72,7 @@ func NewRProxy(listenProto, listenAddr, backendProto, backendAddr, rootCert, ser
 		clientCert:   clientCert,
 		clientKey:    clientKey,
 		serverName:   serverName,
+		verbose:      false,
 	}
 }
 
@@ -193,12 +195,12 @@ func (rp *RProxy) serveTCP(listenConn net.Conn) error {
 	}
 	// Copy network traffic from the listen connection to backend connection
 	go func() {
-		io.Copy(backendConn, NewRPReader(listenConn))
+		io.Copy(NewRPWriteCloser(backendConn), NewRPReader(listenConn, rp.verbose))
 		backendConn.Close()
 		listenConn.Close()
 	}()
 	// Copy network traffic from the backend connection to listen connection
-	io.Copy(NewRPWriteCloser(listenConn), backendConn)
+	io.Copy(NewRPWriteCloser(listenConn), NewRPReader(backendConn, rp.verbose))
 	backendConn.Close()
 	listenConn.Close()
 	return nil
@@ -213,12 +215,12 @@ func (rp *RProxy) serveTLS(listenConn net.Conn) error {
 	}
 	// Copy network traffic from the listen connection to backend connection
 	go func() {
-		io.Copy(backendConn, NewRPReader(listenConn))
+		io.Copy(NewRPWriteCloser(backendConn), NewRPReader(listenConn, rp.verbose))
 		backendConn.Close()
 		listenConn.Close()
 	}()
 	// Copy network traffic from the backend connection to listen connection
-	io.Copy(NewRPWriteCloser(listenConn), backendConn)
+	io.Copy(NewRPWriteCloser(listenConn), NewRPReader(backendConn, rp.verbose))
 	backendConn.Close()
 	listenConn.Close()
 	return nil

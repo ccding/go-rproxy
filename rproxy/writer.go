@@ -4,14 +4,13 @@ import (
 	"io"
 )
 
-// RPWriteCloser defines a customized WriteCloser, which is used to modify
-// or log data.
+// RPWriteCloser defines a customized WriteCloser, which is used to modify data.
 type RPWriteCloser struct {
 	Writer io.Writer
 	Closer io.Closer
 }
 
-// NewRPWriteCloser creates the new RPWriteCloser from an io.WriteCloser
+// NewRPWriteCloser creates the new RPWriteCloser from an io.WriteCloser.
 func NewRPWriteCloser(wc io.WriteCloser) io.WriteCloser {
 	return &RPWriteCloser{Writer: wc, Closer: wc}
 }

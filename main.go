@@ -34,6 +34,7 @@ func main() {
 	var clientCert = flag.String("ccert", "certs/client_0_cert.pem", "client cert")
 	var clientKey = flag.String("ckey", "certs/client_0_key.pem", "client key")
 	var serverName = flag.String("sname", "testapp-server", "server name")
+	var verbose = flag.Bool("v", false, "verbose mode")
 	flag.Parse()
 
 	listenProtoAndAddr := strings.Split(*listen, "://")
@@ -55,6 +56,7 @@ func main() {
 		*clientKey,
 		*serverName,
 	)
+	rp.SetVerbose(*verbose)
 
 	go log.Fatal(rp.Start())
 	time.Sleep(time.Millisecond)
