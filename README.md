@@ -1,13 +1,9 @@
 # go-rproxy
 
-[![Build Status](https://travis-ci.org/ccding/go-rproxy.svg?branch=master)]
-(https://travis-ci.org/ccding/go-rproxy)
-[![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)]
-(https://opensource.org/licenses/Apache-2.0)
-[![GoDoc](https://godoc.org/github.com/ccding/go-rproxy?status.svg)]
-(http://godoc.org/github.com/ccding/go-rproxy/rproxy)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ccding/go-rproxy)]
-(https://goreportcard.com/report/github.com/ccding/go-rproxy)
+[![Build Status](https://travis-ci.org/ccding/go-rproxy.svg?branch=master)](https://travis-ci.org/ccding/go-rproxy)
+[![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)](https://opensource.org/licenses/Apache-2.0)
+[![GoDoc](https://godoc.org/github.com/ccding/go-rproxy?status.svg)](http://godoc.org/github.com/ccding/go-rproxy/rproxy)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ccding/go-rproxy)](https://goreportcard.com/report/github.com/ccding/go-rproxy)
 
 WARNING: This project is still under development. Its API may change
 significantly.
